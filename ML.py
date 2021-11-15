@@ -9,8 +9,13 @@ import numpy as np
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 
-clusters_df = pd.read_csv(r'D:\ML_Granada_v2\Training_data_labeled_v5_equal_size.csv')
+import statistics
+
+
+clusters_df = pd.read_csv(r'D:\XBG Gitlab\ML_Rockfall\Training_data_labeled_v5_equal_size.csv')
 
 # Identify input and target columns
 input_cols, target_col = clusters_df.columns[0:-1], clusters_df.columns[-1]
@@ -19,43 +24,50 @@ inputs_df, targets = clusters_df[input_cols].copy(), clusters_df[target_col].cop
 numeric_cols = clusters_df[input_cols].select_dtypes(include=np.number).columns.tolist()
 categorical_cols = clusters_df[input_cols].select_dtypes(include='object').columns.tolist()
 
-train_inputs, val_inputs, train_targets, val_targets = train_test_split(inputs_df[numeric_cols], 
-                                                                        targets, 
-                                                                        test_size=0.50)
+def test(depth, estimators):
+    train_inputs, val_inputs, train_targets, val_targets = train_test_split(inputs_df[numeric_cols],
+                                                                            targets,
+                                                                            test_size=0.25)
 
-# Impute and scale numeric columns
-imputer = SimpleImputer().fit(train_inputs)
-train_inputs = imputer.transform(train_inputs)
-scaler = MinMaxScaler().fit(train_inputs)
-train_inputs = scaler.transform(train_inputs)
+    # Impute and scale numeric columns
+    imputer = SimpleImputer().fit(train_inputs)
+    train_inputs = imputer.transform(train_inputs)
+    scaler = MinMaxScaler().fit(train_inputs)
+    train_inputs = scaler.transform(train_inputs)
 
-imputer = SimpleImputer().fit(val_inputs)
-val_inputs1 = imputer.transform(val_inputs)
-scaler = MinMaxScaler().fit(val_inputs1)
-val_inputs1 = scaler.transform(val_inputs1)
+    imputer = SimpleImputer().fit(val_inputs)
+    val_inputs1 = imputer.transform(val_inputs)
+    scaler = MinMaxScaler().fit(val_inputs1)
+    val_inputs1 = scaler.transform(val_inputs1)
 
-from sklearn.ensemble import RandomForestClassifier
+    model = GradientBoostingClassifier()
+    model.fit(train_inputs, train_targets)
+    score = model.score(val_inputs1, val_targets)
 
-model = RandomForestClassifier(n_jobs=-1, random_state=42)
+    pred = model.predict(val_inputs1)
+    result = val_inputs.assign(label=pred)
+    result = result.rename(columns={'label':'prediction'})
+    check = pd.concat([result, val_targets], axis=1)
+    check["compare"] = check.prediction*2+check.label
 
-model.fit(train_inputs, train_targets)
+    check.to_csv(r'D:\ML_Granada_v2\Result_ML\check.csv', columns=['//X','Y', 'Z', 'compare'], index=False)
 
-#model.fit(inputs_df, targets)
+    importance_df = pd.DataFrame({
+        'feature': inputs_df.columns,
+        'importance': model.feature_importances_
+    }).sort_values('importance', ascending=False)
 
-model.score(val_inputs1, val_targets)
+    importance_df.head(10)
 
-pred = model.predict(val_inputs1)
+    from sklearn.metrics import confusion_matrix
+    matrix = confusion_matrix(val_targets, pred, normalize='true')
 
-result = val_inputs.assign(label=pred)
+    return score, matrix
 
-result.to_csv(r'D:\ML_Granada_v2\Result_ML\result.csv', index=False)
-
-importance_df = pd.DataFrame({
-    'feature': inputs_df.columns,
-    'importance': model.feature_importances_
-}).sort_values('importance', ascending=False)
-
-importance_df.head(10)
-
-from sklearn.metrics import confusion_matrix
-confusion_matrix(val_targets, pred, normalize='true')
+values = []
+for i in range (100):
+    score, matrix = test(1, 100)
+    values.append(score)
+    print(statistics.mean(values))
+    #print(score)
+    #print(matrix)

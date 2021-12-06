@@ -11,6 +11,10 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
+import matplotlib.pyplot as plt
+from sklearn.tree import plot_tree, export_text
+import seaborn as sns
+
 
 import statistics
 
@@ -40,7 +44,7 @@ def test(depth, estimators):
     scaler = MinMaxScaler().fit(val_inputs1)
     val_inputs1 = scaler.transform(val_inputs1)
 
-    model = GradientBoostingClassifier()
+    model = RandomForestClassifier()
     model.fit(train_inputs, train_targets)
     score = model.score(val_inputs1, val_targets)
 
@@ -50,7 +54,7 @@ def test(depth, estimators):
     check = pd.concat([result, val_targets], axis=1)
     check["compare"] = check.prediction*2+check.label
 
-    check.to_csv(r'D:\ML_Granada_v2\Result_ML\check.csv', columns=['//X','Y', 'Z', 'compare'], index=False)
+    check.to_csv(r'D:\ML_Granada_v2\Result_ML\equal_size3.csv', columns=['//X','Y', 'Z', 'compare'], index=False)
 
     importance_df = pd.DataFrame({
         'feature': inputs_df.columns,
@@ -62,12 +66,29 @@ def test(depth, estimators):
     from sklearn.metrics import confusion_matrix
     matrix = confusion_matrix(val_targets, pred, normalize='true')
 
-    return score, matrix
+    pred1 = model.predict(train_inputs)
+    matrix1 = confusion_matrix(train_targets, pred1, normalize='true')
+
+    return score, matrix, model, importance_df, pred1, matrix1
 
 values = []
-for i in range (100):
-    score, matrix = test(1, 100)
+for i in range (1):
+    score, matrix, model, importance_df, pred1, matrix1 = test(1, 100)
     values.append(score)
     print(statistics.mean(values))
-    #print(score)
-    #print(matrix)
+    print(score)
+    print(matrix1)
+    plt.figure(1)
+    sns.heatmap(matrix1, annot=False, cmap="RdYlGn")
+    plt.show()
+
+    plt.figure(figsize=(9,5))
+    plt.title('Feature Importance')
+    sns.barplot(data=importance_df.head(10), x='importance', y='feature')
+    plt.show()
+
+#plt.figure(figsize=(80,20))
+#plot_tree(model.estimators_[5], feature_names=inputs_df.columns, filled=True, rounded=True, class_names=str(model.classes_));
+#plt.show()
+
+importance_df.head(10)

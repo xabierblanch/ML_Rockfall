@@ -4,7 +4,7 @@ Contact: xabierblanch@gmail.com<br/>
 
 Scripts, data and models programmed to apply Machine Learning algorithm (Random Forest Classifier) to identify rockfalls in La Alhambra (Granada) using fixed photogrammetric systems (SfM). If you use these codes or if they inspire you in your work, please share it with me :D (And cite it correctly).
 
-How to citate:
+How to cite:
 -----
 Pending publication (PhD thesis)
 
